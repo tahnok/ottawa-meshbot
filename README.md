@@ -34,7 +34,7 @@ bot = MeshBot(prefix="!")
 
 @bot.command("ping", help="Check that the bot is alive")
 async def ping(ctx: Context) -> str:
-    return "pong"
+    return f"pong ({ctx.path_description})"  # e.g. "pong (direct)" or "pong (2 hops via a1,b2)"
 
 @bot.command("greet", help="Say hi", aliases=("hello",))
 async def greet(ctx: Context) -> str:
@@ -60,7 +60,8 @@ Useful things on `Context`:
 | `ctx.args` | Everything after the command name, e.g. `"20"` for `!roll 20` |
 | `ctx.sender_name` | Sender's name (contact name for DMs, `Name:` text convention for channels) |
 | `ctx.is_dm` | `True` for direct messages, `False` for channel messages |
-| `ctx.message` | The full `IncomingMessage` (text, sender key, channel index) |
+| `ctx.path_description` | Route the message took, e.g. `"direct"` or `"2 hops via a1,b2"` |
+| `ctx.message` | The full `IncomingMessage` (text, sender key, channel index, path) |
 
 A `!help` command listing every registered command is built in. Exceptions
 raised by a handler are caught, logged, and reported back to the sender

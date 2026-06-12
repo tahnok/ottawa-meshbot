@@ -22,7 +22,7 @@ bot = MeshBot(prefix="!")
 
 @bot.command("ping", help="Check that the bot is alive")
 async def ping(ctx: Context) -> str:
-    return "pong"
+    return f"pong ({ctx.path_description})"
 
 
 @bot.command("echo", help="Repeat back whatever you send")
