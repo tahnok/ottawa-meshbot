@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "mypy>=1.14",
     "pytest>=8",
     "pytest-asyncio>=0.25",
 ]
@@ -21,3 +22,11 @@ build-backend = "uv_build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.mypy]
+files = ["src", "tests", "examples"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "meshcore.*"
+ignore_missing_imports = true
