@@ -87,7 +87,7 @@ tests/
 ```bash
 uv sync          # install dependencies (including dev group)
 uv run pytest    # run the test suite
-uv run mypy      # type check (strict mode)
+uv run ty check  # type check
 ```
 
 Tests run entirely against a fake in-memory device — no radio hardware needed.
