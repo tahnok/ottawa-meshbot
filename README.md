@@ -1,11 +1,13 @@
 # ottobot
 
-A chatbot for Ottawa's [MeshCore](https://meshcore.co.uk/) mesh radio
+A chatbot for Ottawa's [MeshCore](https://meshcore.io/) mesh radio
 network, built on the [`meshcore`](https://pypi.org/project/meshcore/)
 Python library. Message it `!help` on the mesh (in a DM or on a channel it
 monitors) and it answers. Anyone can contribute a command — each one is a
 single file, picked up automatically. See
 [Contributing a command](#contributing-a-command).
+
+For more info see https://ottawamesh.ca/ or [join the discord](https://discord.gg/WSyNd8SfNr)
 
 ## Requirements
 
@@ -22,8 +24,6 @@ uv run ottobot --ble AA:BB:CC:DD:EE:FF
 uv run ottobot --tcp 192.168.1.50:5000
 ```
 
-(`uv run python -m ottobot ...` works too.)
-
 ## Trying commands without a radio
 
 ```bash
@@ -36,17 +36,6 @@ printed back. Everything runs in memory — no device is needed and nothing
 is sent over the mesh, so it's the place to test a command you're working
 on before spamming a real channel.
 
-Lines starting with `/` control the simulated sender instead of going to
-the bot:
-
-| Control | What it does |
-|---|---|
-| `/dm` | Talk to the bot in a DM |
-| `/channel [n]` | Talk on channel *n* (default 0, where you start) |
-| `/name <name>` | Change the simulated sender's name |
-| `/hops <n> [a1,b2]` | Pretend messages took *n* repeater hops, optionally via the given hop hashes |
-| `/status` | Show the simulated sender and route |
-| `/quit` | Leave the simulator |
 
 ## Commands
 
@@ -93,43 +82,6 @@ discovered automatically — there is no central list to edit. To add one:
 6. Open a pull request.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Writing a handler
-
-Command handlers are async functions that receive a `Context` and can:
-
-- **return a string** — it is sent as the reply, or
-- **call `await ctx.reply("...")`** — useful for sending multiple replies, or
-- **return `None`** — nothing is sent.
-
-Useful things on `Context`:
-
-| Attribute | Meaning |
-|---|---|
-| `ctx.args` | Everything after the command name, e.g. `"20"` for `!roll 20` |
-| `ctx.sender_name` | Sender's name (contact name for DMs, `Name:` text convention for channels) |
-| `ctx.is_dm` | `True` for direct messages, `False` for channel messages |
-| `ctx.path_description` | Route the message took, e.g. `"direct"` or `"2 hops via a1,b2"` |
-| `ctx.raw` | The unmodified meshcore event payload (SNR, sender_timestamp, ...) — escape hatch for fields the framework doesn't model |
-| `ctx.message` | The full `IncomingMessage` (text, sender key, channel index, path) |
-
-A `!help` command listing every registered command is built in. Exceptions
-raised by a handler are caught, logged, and reported back to the sender
-instead of crashing the bot.
-
-## Project layout
-
-```
-src/ottobot/
-  bot.py        MeshBot: command parsing and dispatch (transport-agnostic)
-  registry.py   Command + CommandRegistry (names, aliases, help text)
-  context.py    IncomingMessage and the Context passed to handlers
-  runner.py     MeshCoreRunner: wires the bot to a meshcore device
-  simulator.py  Interactive in-memory REPL for testing commands (--simulate)
-  cli.py        The ottobot entry point
-  commands/     The bot's commands, one file each — add yours here
-tests/
-```
 
 ## Development
 
