@@ -2,13 +2,13 @@ import pytest
 
 from helpers import ReplyRecorder, dm
 from ottawa_meshbot import MeshBot
-from ottawa_meshbot.commands import ping
+from ottawa_meshbot.commands import ping, register_module
 
 
 @pytest.fixture
 def bot() -> MeshBot:
     bot = MeshBot()
-    ping.register(bot)
+    register_module(bot, ping)
     return bot
 
 

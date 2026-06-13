@@ -4,13 +4,13 @@ import pytest
 
 from helpers import ReplyRecorder, dm
 from ottawa_meshbot import MeshBot
-from ottawa_meshbot.commands import roll
+from ottawa_meshbot.commands import register_module, roll
 
 
 @pytest.fixture
 def bot() -> MeshBot:
     bot = MeshBot()
-    roll.register(bot)
+    register_module(bot, roll)
     return bot
 
 

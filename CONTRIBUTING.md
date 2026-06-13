@@ -7,18 +7,18 @@ up automatically — there is no central list to edit.
 ## Adding a command
 
 1. Create `src/ottawa_meshbot/commands/<name>.py` (lowercase module name,
-   matching the command). It must define a `register` hook:
+   matching the command). Define the handler at the top level with the
+   `@command` marker — it is collected and registered when the bot loads:
 
    ```python
    """!greet — say hi."""
 
-   from ottawa_meshbot import Context, MeshBot
+   from ottawa_meshbot import Context, command
 
 
-   def register(bot: MeshBot) -> None:
-       @bot.command("greet", help="Say hi", aliases=("hello",))
-       async def greet(ctx: Context) -> str:
-           return f"Hi {ctx.sender_name or 'there'}!"
+   @command("greet", help="Say hi", aliases=("hello",))
+   async def greet(ctx: Context) -> str:
+       return f"Hi {ctx.sender_name or 'there'}!"
    ```
 
 2. Create `tests/test_command_<name>.py`. Register only your module
