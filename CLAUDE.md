@@ -26,51 +26,13 @@ change done — CI runs exactly these two steps (`.github/workflows/ci.yml`).
 
 ## Architecture
 
-The codebase is layered so the core bot logic is transport-agnostic:
-
-- **`src/ottobot/bot.py` — `MeshBot`**: Core dispatch. Parses `!command args`,
-  looks up the command in the registry, builds a `Context`, calls the
-  handler, and sends the return value (if any) as the reply. Exceptions
-  from handlers are caught, logged, and replaced with a generic error
-  reply — handlers don't need their own try/except for unexpected errors.
-  Also registers the built-in `!help` command. Knows nothing about
-  meshcore/radios.
-
-- **`src/ottobot/context.py` — `IncomingMessage` and `Context`**: Normalized
-  representation of an incoming message, independent of transport.
-  `IncomingMessage` carries text, sender info, channel/DM info, and path
-  (hop) info, plus `raw` as an escape hatch for transport-specific fields
-  (e.g. SNR). `Context` is what handlers receive: read-only view of the
-  message plus `ctx.reply(text)` to send additional replies.
-
-- **`src/ottobot/registry.py` — `Command`, `CommandRegistry`, `command`
-  decorator**: `@command(name, help=..., aliases=...)` tags a top-level
-  async function with command metadata at import time (no bot instance
-  needed). `module_commands()` collects tagged handlers defined directly in
-  a module (not merely imported). `CommandRegistry` resolves names/aliases
-  to commands and raises on duplicate registration.
-
-- **`src/ottobot/commands/`**: One file per command, auto-discovered by
-  `load_commands()` (`commands/__init__.py`). Modules starting with `_` are
-  skipped (use for shared helpers). A command module with zero
-  `@command`-marked handlers raises `TypeError` at load time — load is
-  fail-fast by design (broken commands should stop the bot, not be
-  silently skipped).
-
-- **`src/ottobot/runner.py` — `MeshCoreRunner`, `connect()`**: The only
-  module that talks to the real `meshcore` library. Subscribes to
-  `CONTACT_MSG_RECV`/`CHANNEL_MSG_RECV` events, normalizes payloads into
-  `IncomingMessage`, and wires replies back to `send_msg`/`send_chan_msg`.
-
-- **`src/ottobot/simulator.py` — `Simulator`**: In-memory REPL for trying
-  commands without a device. Maintains a "persona" (sender name, DM vs.
-  channel, simulated hop count/path) controllable via `/dm`, `/channel`,
-  `/name`, `/hops`, `/status` etc. `handle_line()` is the testable core.
-
-- **`src/ottobot/cli.py`**: Argument parsing and entry point (`ottobot`
-  script). Builds the bot via `build_bot()` (loads all commands), then
-  either runs the simulator (`--simulate`) or connects to a device
-  (`--serial` / `--ble` / `--tcp`) and runs `MeshCoreRunner.run_forever()`.
+The core bot logic (`bot.py`, `context.py`, `registry.py`) is
+transport-agnostic and knows nothing about meshcore/radios. `runner.py` is
+the only module that talks to the real `meshcore` library; `simulator.py`
+provides an in-memory REPL for trying commands without a device. Commands
+live one-per-file in `src/ottobot/commands/`, auto-discovered by
+`load_commands()`. `cli.py` wires it all together as the `ottobot` entry
+point.
 
 ## Key conventions
 
