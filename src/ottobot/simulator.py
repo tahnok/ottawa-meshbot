@@ -26,7 +26,7 @@ from .context import IncomingMessage
 
 BANNER = (
     "Simulator: messages are handled in memory, nothing is sent over the mesh.\n"
-    "On a channel, address the bot by name (e.g. '{name} !help'); in a DM "
+    "On a channel, mention the bot (e.g. '@[{name}] !help'); in a DM "
     "(/dm) the prefix alone is enough.\n"
     "/help for simulator controls, /quit to leave."
 )
@@ -159,7 +159,7 @@ class Simulator:
         addressing = (
             "DM: prefix alone"
             if self.channel_idx is None
-            else f"address as {self.bot.name!r}"
+            else f"mention as @[{self.bot.name}]"
             if self.bot.name
             else "no name set"
         )

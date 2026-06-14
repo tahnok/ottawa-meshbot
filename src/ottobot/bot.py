@@ -92,18 +92,27 @@ class MeshBot:
         return name, args.strip()
 
     def strip_address(self, text: str) -> tuple[str, bool]:
-        """Remove a leading address to the bot by name, e.g. "ottobot: !ping".
+        """Remove a leading address to the bot by name, e.g. "@[ottobot] !ping".
 
         Returns (remaining text, whether the bot was addressed by name).
-        With no name configured, nothing is stripped and the bot counts as
-        not addressed. The name must stand alone — followed by whitespace,
-        ":"/"," or the end — so "ottobotanist" isn't read as "ottobot".
+        The MeshCore app inserts mentions as "@[Name]"; we also accept a
+        plain or "@"-prefixed name typed by hand. With no name configured,
+        nothing is stripped and the bot counts as not addressed. A
+        hand-typed name must stand alone — followed by whitespace, ":"/","
+        or the end — so "ottobotanist" isn't read as "ottobot".
         """
         text = text.strip()
         if not self.name:
             return text, False
-        if text.lower().startswith(self.name.lower()):
-            rest = text[len(self.name) :]
+        name = self.name.lower()
+        # The app's mention form "@[Name]" is self-delimiting.
+        mention = f"@[{name}]"
+        if text.lower().startswith(mention):
+            return text[len(mention) :].lstrip(" :,"), True
+        # A hand-typed "@name" or bare "name", which must stand alone.
+        body = text[1:] if text.startswith("@") else text
+        if body.lower().startswith(name):
+            rest = body[len(self.name) :]
             if not rest or rest[0] in " :,":
                 return rest.lstrip(" :,"), True
         return text, False

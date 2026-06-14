@@ -231,6 +231,13 @@ class TestChannelMessages:
         await mc.deliver_chan("alice: ottobot !ping", channel_idx=2)
         assert mc.commands.sent_chan_msgs == [(2, "pong")]
 
+    async def test_app_mention_addresses_the_bot(
+        self, runner: MeshCoreRunner, mc: FakeMeshCore
+    ) -> None:
+        # As the MeshCore app sends it: "Sender: @[Bot] !command".
+        await mc.deliver_chan("alice: @[ottobot] !ping", channel_idx=2)
+        assert mc.commands.sent_chan_msgs == [(2, "pong")]
+
     async def test_sender_name_parsed_from_text_convention(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:

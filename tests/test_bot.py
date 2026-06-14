@@ -179,12 +179,20 @@ def _named_bot() -> MeshBot:
 
 
 class TestAddressing:
+    def test_strip_address_app_mention_form(self) -> None:
+        # The MeshCore app inserts mentions as "@[Name]".
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("@[ottobot] !ping") == ("!ping", True)
+        assert bot.strip_address("@[ottobot]!ping") == ("!ping", True)
+        assert bot.strip_address("@[OttoBot] !ping") == ("!ping", True)
+
     def test_strip_address_with_separators(self) -> None:
         bot = MeshBot(name="ottobot")
         assert bot.strip_address("ottobot !ping") == ("!ping", True)
         assert bot.strip_address("ottobot: !ping") == ("!ping", True)
         assert bot.strip_address("ottobot, !ping") == ("!ping", True)
         assert bot.strip_address("OttoBot !ping") == ("!ping", True)
+        assert bot.strip_address("@ottobot !ping") == ("!ping", True)
 
     def test_strip_address_requires_name_to_stand_alone(self) -> None:
         bot = MeshBot(name="ottobot")
@@ -220,6 +228,12 @@ class TestAddressing:
     async def test_channel_runs_when_addressed(self, reply: ReplyRecorder) -> None:
         bot = _named_bot()
         handled = await bot.dispatch(channel_msg("ottobot !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_runs_with_app_mention(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("@[ottobot] !ping"), reply)
         assert handled
         assert reply.replies == ["pong"]
 
