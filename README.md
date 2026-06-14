@@ -2,10 +2,10 @@
 
 A chatbot for Ottawa's [MeshCore](https://meshcore.io/) mesh radio
 network, built on the [`meshcore`](https://pypi.org/project/meshcore/)
-Python library. Message it `!help` on the mesh (in a DM or on a channel it
-monitors) and it answers. Anyone can contribute a command — each one is a
-single file, picked up automatically. See
-[Contributing a command](#contributing-a-command).
+Python library. In a DM, just message it `!help`. On a shared channel,
+mention it first — `@[ottobot] !help` — so it stays quiet unless
+spoken to. Anyone can contribute a command — each one is a single file,
+picked up automatically. See [Contributing a command](#contributing-a-command).
 
 For more info see https://ottawamesh.ca/ or [join the discord](https://discord.gg/WSyNd8SfNr)
 
@@ -23,6 +23,26 @@ uv run ottobot --serial /dev/ttyUSB0
 uv run ottobot --ble AA:BB:CC:DD:EE:FF
 uv run ottobot --tcp 192.168.1.50:5000
 ```
+
+### Addressing the bot
+
+In a **DM** the prefix alone is enough (`!ping`) — the message is clearly
+for the bot. On a **channel** it only answers when mentioned first, so it
+doesn't reply to every `!command` on a busy channel. The MeshCore app
+inserts mentions as `@[Name]`; a plain or `@`-prefixed name typed by hand
+works too:
+
+```
+@[ottobot] !ping
+@ottobot !ping
+ottobot !ping
+ottobot: !ping
+```
+
+By default the bot uses the connected device's own advertised name; pass
+`--name <name>` to pin a different one. A command can opt out of requiring
+the name in channels with `@command(..., requires_address=False)`, for
+commands meant to react to any channel message.
 
 ## Running with Docker
 

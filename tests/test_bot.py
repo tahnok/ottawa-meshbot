@@ -21,7 +21,7 @@ class TestParse:
         assert bot.parse("!") is None
 
     def test_custom_prefix(self) -> None:
-        bot = MeshBot(prefix="/")
+        bot = MeshBot(name="ottobot", prefix="/")
         assert bot.parse("/ping") == ("ping", "")
         assert bot.parse("!ping") is None
 
@@ -139,29 +139,105 @@ class TestDispatch:
         assert handled
         assert reply.replies == ["Sorry, !boom hit an error."]
 
-    async def test_channel_messages_handled_by_default(
+    async def test_channel_messages_handled_when_addressed(
         self, bot: MeshBot, reply: ReplyRecorder
     ) -> None:
         @bot.command("ping")
         async def ping(ctx: Context) -> str:
             return "pong"
 
-        handled = await bot.dispatch(channel_msg("!ping"), reply)
+        handled = await bot.dispatch(channel_msg("@[ottobot] !ping"), reply)
         assert handled
         assert reply.replies == ["pong"]
 
     async def test_channel_messages_ignored_when_disabled(
         self, reply: ReplyRecorder
     ) -> None:
-        bot = MeshBot(respond_in_channels=False)
+        bot = MeshBot(name="ottobot", respond_in_channels=False)
 
         @bot.command("ping")
         async def ping(ctx: Context) -> str:
             return "pong"
 
+        handled = await bot.dispatch(channel_msg("@[ottobot] !ping"), reply)
+        assert not handled
+        assert reply.replies == []
+
+
+def _named_bot() -> MeshBot:
+    bot = MeshBot(name="ottobot")
+
+    @bot.command("ping")
+    async def ping(ctx: Context) -> str:
+        return "pong"
+
+    @bot.command("status", requires_address=False)
+    async def status(ctx: Context) -> str:
+        return "ok"
+
+    return bot
+
+
+class TestAddressing:
+    def test_strip_address_app_mention_form(self) -> None:
+        # The MeshCore app inserts mentions as "@[Name]".
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("@[ottobot] !ping") == ("!ping", True)
+        assert bot.strip_address("@[ottobot]!ping") == ("!ping", True)
+        assert bot.strip_address("@[OttoBot] !ping") == ("!ping", True)
+
+    def test_strip_address_with_separators(self) -> None:
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("ottobot !ping") == ("!ping", True)
+        assert bot.strip_address("ottobot: !ping") == ("!ping", True)
+        assert bot.strip_address("ottobot, !ping") == ("!ping", True)
+        assert bot.strip_address("OttoBot !ping") == ("!ping", True)
+        assert bot.strip_address("@ottobot !ping") == ("!ping", True)
+
+    def test_strip_address_requires_name_to_stand_alone(self) -> None:
+        bot = MeshBot(name="ottobot")
+        # "ottobotanist" must not be read as addressing "ottobot".
+        assert bot.strip_address("ottobotanist !ping") == ("ottobotanist !ping", False)
+
+    def test_strip_address_when_not_addressed(self) -> None:
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("!ping") == ("!ping", False)
+
+    async def test_dm_needs_no_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(dm("!ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_dm_tolerates_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(dm("ottobot !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_requires_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
         handled = await bot.dispatch(channel_msg("!ping"), reply)
         assert not handled
         assert reply.replies == []
+
+    async def test_channel_runs_when_addressed(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("ottobot !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_runs_with_app_mention(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("@[ottobot] !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_opt_out_runs_without_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("!status"), reply)
+        assert handled
+        assert reply.replies == ["ok"]
 
     async def test_context_exposes_sender_and_dm_flag(
         self, bot: MeshBot, reply: ReplyRecorder

@@ -21,14 +21,14 @@ def sim(bot: MeshBot) -> Simulator:
 
 class TestMessages:
     async def test_reply_is_printed_with_bot_prefix(self, sim: Simulator) -> None:
-        assert await sim.handle_line("!ping") == ["bot> pong (direct)"]
+        assert await sim.handle_line("@[ottobot] !ping") == ["bot> pong (direct)"]
 
     async def test_multiline_reply_is_indented(self, sim: Simulator) -> None:
         @sim.bot.command("lines")
         async def lines(ctx: Context) -> str:
             return "one\ntwo"
 
-        assert await sim.handle_line("!lines") == ["bot> one", "     two"]
+        assert await sim.handle_line("@[ottobot] !lines") == ["bot> one", "     two"]
 
     async def test_unknown_command_explains_silence(self, sim: Simulator) -> None:
         (notice,) = await sim.handle_line("!nosuchthing")
@@ -51,7 +51,7 @@ class TestMessages:
 class TestControls:
     async def test_channel_switch_reaches_handler(self, sim: Simulator) -> None:
         await sim.handle_line("/channel 2")
-        assert await sim.handle_line("!whoami") == ["bot> you via channel 2"]
+        assert await sim.handle_line("@[ottobot] !whoami") == ["bot> you via channel 2"]
         # Channel messages don't carry a sender key on the real mesh.
         assert sim.build_message("x").sender_key is None
 
@@ -66,16 +66,16 @@ class TestControls:
 
     async def test_name_changes_sender(self, sim: Simulator) -> None:
         await sim.handle_line("/name alice")
-        assert await sim.handle_line("!whoami") == ["bot> alice via channel 0"]
+        assert await sim.handle_line("@[ottobot] !whoami") == ["bot> alice via channel 0"]
 
     async def test_hops_with_route_shows_in_path(self, sim: Simulator) -> None:
         await sim.handle_line("/hops 2 a1,b2")
-        assert await sim.handle_line("!ping") == ["bot> pong (2 hops via a1,b2)"]
+        assert await sim.handle_line("@[ottobot] !ping") == ["bot> pong (2 hops via a1,b2)"]
 
     async def test_hops_zero_means_direct(self, sim: Simulator) -> None:
         await sim.handle_line("/hops 3")
         await sim.handle_line("/hops 0")
-        assert await sim.handle_line("!ping") == ["bot> pong (direct)"]
+        assert await sim.handle_line("@[ottobot] !ping") == ["bot> pong (direct)"]
 
     async def test_hops_rejects_non_hex_route(self, sim: Simulator) -> None:
         (notice,) = await sim.handle_line("/hops 1 zz")

@@ -40,7 +40,7 @@ point.
   top-level `@command("name", help="...", aliases=(...))` async handler
   taking `ctx: Context` and returning `str | None`. Add a matching
   `tests/test_command_<name>.py` (copy `test_command_ping.py` for shape —
-  it registers just that module against a fresh `MeshBot()` and dispatches
+  it registers just that module against a fresh `MeshBot(name=...)` and dispatches
   test messages via `tests/helpers.py`'s `dm()`/`channel_msg()`/
   `ReplyRecorder`). Try it interactively with `uv run ottobot --simulate`.
 - **Module docstrings double as help text/usage** — e.g.

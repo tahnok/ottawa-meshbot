@@ -26,8 +26,9 @@ from .context import IncomingMessage
 
 BANNER = (
     "Simulator: messages are handled in memory, nothing is sent over the mesh.\n"
-    "Type a message to the bot (try !help), /help for simulator controls, "
-    "/quit to leave."
+    "On a channel, mention the bot (e.g. '@[{name}] !help'); in a DM "
+    "(/dm) the prefix alone is enough.\n"
+    "/help for simulator controls, /quit to leave."
 )
 
 CONTROL_HELP = [
@@ -155,11 +156,19 @@ class Simulator:
     def _status(self) -> str:
         where = "a DM" if self.channel_idx is None else f"channel {self.channel_idx}"
         route = self.build_message("").path_description
-        return f"{self.sender_name} in {where}, messages arrive {route}"
+        addressing = (
+            "DM: prefix alone"
+            if self.channel_idx is None
+            else f"mention as @[{self.bot.name}]"
+        )
+        return (
+            f"{self.sender_name} in {where}, messages arrive {route} "
+            f"({addressing})"
+        )
 
     async def repl(self) -> None:
         """Read lines from stdin and print the bot's side until /quit or EOF."""
-        print(BANNER)
+        print(BANNER.format(name=self.bot.name))
         while not self.done:
             try:
                 line = await asyncio.to_thread(input, self.prompt)

@@ -7,7 +7,7 @@ from ottobot.commands import ping, register_module
 
 @pytest.fixture
 def bot() -> MeshBot:
-    bot = MeshBot()
+    bot = MeshBot(name="ottobot")
     register_module(bot, ping)
     return bot
 

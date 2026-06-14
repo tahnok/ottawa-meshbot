@@ -60,7 +60,7 @@ class MeshCoreRunner:
         # Without this, incoming messages stay queued on the device and
         # the *_MSG_RECV events never fire.
         await self.mc.start_auto_message_fetching()
-        logger.info("bot started, listening for messages")
+        logger.info("bot started as %r, listening for messages", self.bot.name)
 
     async def stop(self) -> None:
         for subscription in self._subscriptions:
