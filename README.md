@@ -24,6 +24,36 @@ uv run ottobot --ble AA:BB:CC:DD:EE:FF
 uv run ottobot --tcp 192.168.1.50:5000
 ```
 
+## Running with Docker
+
+A prebuilt image is published to the GitHub Container Registry on every push
+to `main`:
+
+```bash
+docker run --rm ghcr.io/tahnok/ottobot:latest --tcp 192.168.1.50:5000
+```
+
+Pass the same connection flags you'd pass to `ottobot`. For a USB/serial
+device, pass it through to the container:
+
+```bash
+docker run --rm --device /dev/ttyUSB0 ghcr.io/tahnok/ottobot:latest --serial /dev/ttyUSB0
+```
+
+A sample [`docker-compose.yml`](docker-compose.yml) is included — edit the
+`command:` to match your device, then:
+
+```bash
+docker compose up -d      # start the bot in the background
+docker compose logs -f    # follow its output
+```
+
+To build the image from a local checkout instead of pulling it:
+
+```bash
+docker build -t ottobot .
+```
+
 ## Trying commands without a radio
 
 ```bash
