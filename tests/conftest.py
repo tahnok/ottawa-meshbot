@@ -6,7 +6,7 @@ from ottobot import MeshBot
 
 @pytest.fixture
 def bot() -> MeshBot:
-    return MeshBot()
+    return MeshBot(name="ottobot")
 
 
 @pytest.fixture

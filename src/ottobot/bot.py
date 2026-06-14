@@ -21,7 +21,7 @@ class MeshBot:
 
     Register commands with the decorator::
 
-        bot = MeshBot()
+        bot = MeshBot(name="ottobot")
 
         @bot.command("ping", help="Check that the bot is alive")
         async def ping(ctx):
@@ -34,15 +34,14 @@ class MeshBot:
 
     def __init__(
         self,
+        name: str,
         prefix: str = "!",
-        name: str | None = None,
         respond_in_channels: bool = True,
     ) -> None:
         self.prefix = prefix
         # The bot's own name on the mesh. In channels, commands that
-        # require addressing only run when the message leads with this
-        # name (e.g. "ottobot !ping"). When None, addressing can't be
-        # enforced, so the bot answers any prefixed channel message.
+        # require addressing only run when the message addresses this name
+        # (e.g. "@[ottobot] !ping").
         self.name = name
         self.respond_in_channels = respond_in_channels
         self.registry = CommandRegistry()
@@ -96,14 +95,11 @@ class MeshBot:
 
         Returns (remaining text, whether the bot was addressed by name).
         The MeshCore app inserts mentions as "@[Name]"; we also accept a
-        plain or "@"-prefixed name typed by hand. With no name configured,
-        nothing is stripped and the bot counts as not addressed. A
-        hand-typed name must stand alone — followed by whitespace, ":"/","
-        or the end — so "ottobotanist" isn't read as "ottobot".
+        plain or "@"-prefixed name typed by hand. A hand-typed name must
+        stand alone — followed by whitespace, ":"/"," or the end — so
+        "ottobotanist" isn't read as "ottobot".
         """
         text = text.strip()
-        if not self.name:
-            return text, False
         name = self.name.lower()
         # The app's mention form "@[Name]" is self-delimiting.
         mention = f"@[{name}]"
@@ -131,14 +127,8 @@ class MeshBot:
             logger.debug("ignoring unknown command %r", name)
             return False
         # On a shared channel, only answer when addressed by name (unless
-        # the command opts out). DMs are always addressed to the bot. If we
-        # don't know our own name, we can't enforce this, so we answer.
-        if (
-            not message.is_dm
-            and command.requires_address
-            and self.name
-            and not addressed
-        ):
+        # the command opts out). DMs are always addressed to the bot.
+        if not message.is_dm and command.requires_address and not addressed:
             logger.debug(
                 "ignoring channel %r: bot %r not addressed by name",
                 command.name,

@@ -9,7 +9,7 @@ from ottobot.commands import register_module, roll
 
 @pytest.fixture
 def bot() -> MeshBot:
-    bot = MeshBot()
+    bot = MeshBot(name="ottobot")
     register_module(bot, roll)
     return bot
 

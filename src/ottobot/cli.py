@@ -23,13 +23,9 @@ from .runner import MeshCoreRunner, connect
 from .simulator import Simulator
 
 
-def build_bot(prefix: str = "!", name: str | None = None) -> MeshBot:
-    """A MeshBot with every command in ottobot.commands loaded.
-
-    name pins the bot's name for channel addressing; when None, the runner
-    adopts the connected device's advertised name.
-    """
-    bot = MeshBot(prefix=prefix, name=name)
+def build_bot(name: str, prefix: str = "!") -> MeshBot:
+    """A MeshBot named *name* with every command in ottobot.commands loaded."""
+    bot = MeshBot(name=name, prefix=prefix)
     load_commands(bot)
     return bot
 
@@ -60,14 +56,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 async def run(args: argparse.Namespace) -> None:
     if args.simulate:
-        # No device to ask, so fall back to a default name unless pinned,
-        # otherwise channel addressing couldn't be tried in the simulator.
+        # No device to ask, so fall back to a default name unless pinned.
         await Simulator(build_bot(name=args.name or "ottobot")).repl()
         return
-    bot = build_bot(name=args.name)
     mc = await connect(serial=args.serial, baudrate=args.baudrate, ble=args.ble, tcp=args.tcp)
-    runner = MeshCoreRunner(bot, mc)
     try:
+        # Pin the name with --name, otherwise take the device's own name so
+        # channel addressing tracks whatever the node advertises.
+        name = args.name or (mc.self_info or {}).get("name")
+        if not name:
+            raise SystemExit(
+                "could not determine the bot's name: the device reports none. "
+                "Pass --name to set one."
+            )
+        runner = MeshCoreRunner(build_bot(name=name), mc)
         await runner.run_forever()
     finally:
         await mc.disconnect()

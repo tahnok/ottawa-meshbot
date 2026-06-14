@@ -160,8 +160,6 @@ class Simulator:
             "DM: prefix alone"
             if self.channel_idx is None
             else f"mention as @[{self.bot.name}]"
-            if self.bot.name
-            else "no name set"
         )
         return (
             f"{self.sender_name} in {where}, messages arrive {route} "
@@ -170,7 +168,7 @@ class Simulator:
 
     async def repl(self) -> None:
         """Read lines from stdin and print the bot's side until /quit or EOF."""
-        print(BANNER.format(name=self.bot.name or "the bot"))
+        print(BANNER.format(name=self.bot.name))
         while not self.done:
             try:
                 line = await asyncio.to_thread(input, self.prompt)

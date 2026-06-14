@@ -20,7 +20,7 @@ def test_every_command_module_defines_a_command() -> None:
 
 
 def test_load_commands_loads_all_modules() -> None:
-    loaded = load_commands(MeshBot())
+    loaded = load_commands(MeshBot(name="ottobot"))
     assert loaded == iter_command_module_names()
     assert {"ping", "echo", "roll"} <= set(loaded)
 
@@ -28,11 +28,11 @@ def test_load_commands_loads_all_modules() -> None:
 def test_no_name_collisions_across_command_files() -> None:
     # CommandRegistry raises ValueError on duplicates; a clean load proves
     # no two files claim the same command name or alias.
-    load_commands(MeshBot())
+    load_commands(MeshBot(name="ottobot"))
 
 
 def test_build_bot_exposes_all_commands() -> None:
-    bot = build_bot()
+    bot = build_bot(name="ottobot")
     for name in ("help", "ping", "echo", "roll", "dice"):
         assert bot.registry.get(name) is not None
 
@@ -47,7 +47,7 @@ def test_module_without_commands_is_rejected(
         commands_pkg.importlib, "import_module", lambda name: types.ModuleType(name)
     )
     with pytest.raises(TypeError, match="must define at least one @command"):
-        load_commands(MeshBot())
+        load_commands(MeshBot(name="ottobot"))
 
 
 def test_imported_handlers_are_not_re_registered() -> None:

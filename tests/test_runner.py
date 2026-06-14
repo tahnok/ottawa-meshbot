@@ -115,7 +115,7 @@ ALICE = {"adv_name": "alice", "public_key": "abcdef123456" + "0" * 52}
 
 @pytest.fixture
 def bot() -> MeshBot:
-    bot = MeshBot()
+    bot = MeshBot(name="ottobot")
 
     @bot.command("ping")
     async def ping(ctx: Context) -> str:
@@ -266,7 +266,7 @@ class TestChannelMessages:
     async def test_channel_messages_ignored_when_bot_disabled_for_channels(
         self, mc: FakeMeshCore
     ) -> None:
-        bot = MeshBot(respond_in_channels=False)
+        bot = MeshBot(name="ottobot", respond_in_channels=False)
 
         @bot.command("ping")
         async def ping(ctx: Context) -> str:
@@ -274,32 +274,5 @@ class TestChannelMessages:
 
         runner = MeshCoreRunner(bot, mc)
         await runner.start()
-        await mc.deliver_chan("alice: ottobot !ping")
+        await mc.deliver_chan("alice: @[ottobot] !ping")
         assert mc.commands.sent_chan_msgs == []
-
-
-class TestDeviceName:
-    async def test_adopts_device_name_for_addressing(
-        self, runner: MeshCoreRunner
-    ) -> None:
-        assert runner.bot.name == "ottobot"
-
-    async def test_explicit_name_is_not_overridden(self, mc: FakeMeshCore) -> None:
-        bot = MeshBot(name="pinned")
-        runner = MeshCoreRunner(bot, mc)
-        await runner.start()
-        assert bot.name == "pinned"
-
-    async def test_no_device_name_leaves_bot_permissive(self) -> None:
-        mc = FakeMeshCore(contacts={"abcdef123456": ALICE}, self_info={})
-        bot = MeshBot()
-
-        @bot.command("ping")
-        async def ping(ctx: Context) -> str:
-            return "pong"
-
-        runner = MeshCoreRunner(bot, mc)
-        await runner.start()
-        assert bot.name is None
-        await mc.deliver_chan("alice: !ping")
-        assert mc.commands.sent_chan_msgs == [(0, "pong")]

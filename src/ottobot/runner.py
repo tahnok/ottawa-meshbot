@@ -53,7 +53,6 @@ class MeshCoreRunner:
     async def start(self) -> None:
         """Subscribe to message events and start fetching from the device."""
         await self.mc.ensure_contacts()
-        self._adopt_device_name()
         self._subscriptions = [
             self.mc.subscribe(EventType.CONTACT_MSG_RECV, self._on_contact_msg),
             self.mc.subscribe(EventType.CHANNEL_MSG_RECV, self._on_channel_msg),
@@ -61,25 +60,7 @@ class MeshCoreRunner:
         # Without this, incoming messages stay queued on the device and
         # the *_MSG_RECV events never fire.
         await self.mc.start_auto_message_fetching()
-        logger.info("bot started, listening for messages")
-
-    def _adopt_device_name(self) -> None:
-        """Name the bot after the device's advertised name, unless pinned.
-
-        An explicit name passed to MeshBot wins; otherwise we take the
-        node's own name so channel addressing ("ottobot !ping") tracks
-        whatever the device is advertising.
-        """
-        if self.bot.name:
-            return
-        device_name = (getattr(self.mc, "self_info", None) or {}).get("name")
-        if device_name:
-            self.bot.name = device_name
-            logger.info("addressing as %r (from device)", device_name)
-        else:
-            logger.warning(
-                "device reports no name; bot will answer any prefixed channel message"
-            )
+        logger.info("bot started as %r, listening for messages", self.bot.name)
 
     async def stop(self) -> None:
         for subscription in self._subscriptions:
