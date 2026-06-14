@@ -23,9 +23,13 @@ from .runner import MeshCoreRunner, connect
 from .simulator import Simulator
 
 
-def build_bot(prefix: str = "!") -> MeshBot:
-    """A MeshBot with every command in ottobot.commands loaded."""
-    bot = MeshBot(prefix=prefix)
+def build_bot(prefix: str = "!", name: str | None = None) -> MeshBot:
+    """A MeshBot with every command in ottobot.commands loaded.
+
+    name pins the bot's name for channel addressing; when None, the runner
+    adopts the connected device's advertised name.
+    """
+    bot = MeshBot(prefix=prefix, name=name)
     load_commands(bot)
     return bot
 
@@ -46,14 +50,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="chat with the bot in an in-memory REPL instead of a device",
     )
     parser.add_argument("--baudrate", type=int, default=115200)
+    parser.add_argument(
+        "--name",
+        metavar="NAME",
+        help="bot name for channel addressing (default: the device's own name)",
+    )
     return parser.parse_args(argv)
 
 
 async def run(args: argparse.Namespace) -> None:
-    bot = build_bot()
     if args.simulate:
-        await Simulator(bot).repl()
+        # No device to ask, so fall back to a default name unless pinned,
+        # otherwise channel addressing couldn't be tried in the simulator.
+        await Simulator(build_bot(name=args.name or "ottobot")).repl()
         return
+    bot = build_bot(name=args.name)
     mc = await connect(serial=args.serial, baudrate=args.baudrate, ble=args.ble, tcp=args.tcp)
     runner = MeshCoreRunner(bot, mc)
     try:

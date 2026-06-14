@@ -17,16 +17,28 @@ _COMMAND_ATTR = "_meshbot_command"
 
 @dataclass
 class Command:
-    """A named command and the coroutine that handles it."""
+    """A named command and the coroutine that handles it.
+
+    requires_address controls whether the bot must be addressed by name
+    for this command to run in a *channel* (e.g. "ottobot !ping"). It has
+    no effect on direct messages, which are always addressed to the bot.
+    Set it False for commands that should answer any channel message
+    carrying the prefix, without the name.
+    """
 
     name: str
     handler: CommandHandler
     help: str = ""
     aliases: tuple[str, ...] = ()
+    requires_address: bool = True
 
 
 def command(
-    name: str, *, help: str = "", aliases: tuple[str, ...] = ()
+    name: str,
+    *,
+    help: str = "",
+    aliases: tuple[str, ...] = (),
+    requires_address: bool = True,
 ) -> Callable[[CommandHandler], CommandHandler]:
     """Mark a module-level coroutine as a command handler.
 
@@ -34,13 +46,21 @@ def command(
     needed at import time. The command modules under
     ottobot.commands use this; load_commands() later collects the
     marked handlers via module_commands() and registers them on the bot.
+
+    See Command for what requires_address does.
     """
 
     def decorator(handler: CommandHandler) -> CommandHandler:
         setattr(
             handler,
             _COMMAND_ATTR,
-            Command(name=name, handler=handler, help=help, aliases=aliases),
+            Command(
+                name=name,
+                handler=handler,
+                help=help,
+                aliases=aliases,
+                requires_address=requires_address,
+            ),
         )
         return handler
 

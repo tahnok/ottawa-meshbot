@@ -32,11 +32,16 @@ class FakeCommands:
 
 
 class FakeMeshCore:
-    def __init__(self, contacts: dict[str, dict[str, Any]] | None = None) -> None:
+    def __init__(
+        self,
+        contacts: dict[str, dict[str, Any]] | None = None,
+        self_info: dict[str, Any] | None = None,
+    ) -> None:
         self.commands = FakeCommands()
         self.callbacks: dict[EventType, Any] = {}
         # keyed by pubkey prefix, like get_contact_by_key_prefix expects
         self._contacts = contacts or {}
+        self.self_info = self_info if self_info is not None else {"name": "ottobot"}
         self.ensure_contacts_calls = 0
         self.fetching = False
 
@@ -223,31 +228,32 @@ class TestChannelMessages:
     async def test_channel_command_replies_on_same_channel(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:
-        await mc.deliver_chan("alice: !ping", channel_idx=2)
+        await mc.deliver_chan("alice: ottobot !ping", channel_idx=2)
         assert mc.commands.sent_chan_msgs == [(2, "pong")]
 
     async def test_sender_name_parsed_from_text_convention(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:
-        await mc.deliver_chan("alice: !whoami")
+        await mc.deliver_chan("alice: ottobot !whoami")
         assert mc.commands.sent_chan_msgs == [(0, "alice")]
 
-    async def test_text_without_name_prefix_still_dispatches(
+    async def test_text_without_name_prefix_is_ignored(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:
-        await mc.deliver_chan("!ping")
-        assert mc.commands.sent_chan_msgs == [(0, "pong")]
+        # On a channel the bot only answers when addressed by name.
+        await mc.deliver_chan("alice: !ping")
+        assert mc.commands.sent_chan_msgs == []
 
     async def test_channel_path_is_passed_through(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:
-        await mc.deliver_chan("alice: !path", path_len=255)
+        await mc.deliver_chan("alice: ottobot !path", path_len=255)
         assert mc.commands.sent_chan_msgs == [(0, "direct")]
 
     async def test_channel_exposes_raw_payload(
         self, runner: MeshCoreRunner, mc: FakeMeshCore
     ) -> None:
-        await mc.deliver_chan("alice: !raw", channel_idx=2)
+        await mc.deliver_chan("alice: ottobot !raw", channel_idx=2)
         assert mc.commands.sent_chan_msgs == [(2, "None 2")]
 
     async def test_channel_messages_ignored_when_bot_disabled_for_channels(
@@ -261,5 +267,32 @@ class TestChannelMessages:
 
         runner = MeshCoreRunner(bot, mc)
         await runner.start()
-        await mc.deliver_chan("alice: !ping")
+        await mc.deliver_chan("alice: ottobot !ping")
         assert mc.commands.sent_chan_msgs == []
+
+
+class TestDeviceName:
+    async def test_adopts_device_name_for_addressing(
+        self, runner: MeshCoreRunner
+    ) -> None:
+        assert runner.bot.name == "ottobot"
+
+    async def test_explicit_name_is_not_overridden(self, mc: FakeMeshCore) -> None:
+        bot = MeshBot(name="pinned")
+        runner = MeshCoreRunner(bot, mc)
+        await runner.start()
+        assert bot.name == "pinned"
+
+    async def test_no_device_name_leaves_bot_permissive(self) -> None:
+        mc = FakeMeshCore(contacts={"abcdef123456": ALICE}, self_info={})
+        bot = MeshBot()
+
+        @bot.command("ping")
+        async def ping(ctx: Context) -> str:
+            return "pong"
+
+        runner = MeshCoreRunner(bot, mc)
+        await runner.start()
+        assert bot.name is None
+        await mc.deliver_chan("alice: !ping")
+        assert mc.commands.sent_chan_msgs == [(0, "pong")]

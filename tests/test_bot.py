@@ -163,6 +163,86 @@ class TestDispatch:
         assert not handled
         assert reply.replies == []
 
+
+def _named_bot() -> MeshBot:
+    bot = MeshBot(name="ottobot")
+
+    @bot.command("ping")
+    async def ping(ctx: Context) -> str:
+        return "pong"
+
+    @bot.command("status", requires_address=False)
+    async def status(ctx: Context) -> str:
+        return "ok"
+
+    return bot
+
+
+class TestAddressing:
+    def test_strip_address_with_separators(self) -> None:
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("ottobot !ping") == ("!ping", True)
+        assert bot.strip_address("ottobot: !ping") == ("!ping", True)
+        assert bot.strip_address("ottobot, !ping") == ("!ping", True)
+        assert bot.strip_address("OttoBot !ping") == ("!ping", True)
+
+    def test_strip_address_requires_name_to_stand_alone(self) -> None:
+        bot = MeshBot(name="ottobot")
+        # "ottobotanist" must not be read as addressing "ottobot".
+        assert bot.strip_address("ottobotanist !ping") == ("ottobotanist !ping", False)
+
+    def test_strip_address_when_not_addressed(self) -> None:
+        bot = MeshBot(name="ottobot")
+        assert bot.strip_address("!ping") == ("!ping", False)
+
+    def test_strip_address_without_name_strips_nothing(self) -> None:
+        bot = MeshBot()
+        assert bot.strip_address("ottobot !ping") == ("ottobot !ping", False)
+
+    async def test_dm_needs_no_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(dm("!ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_dm_tolerates_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(dm("ottobot !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_requires_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("!ping"), reply)
+        assert not handled
+        assert reply.replies == []
+
+    async def test_channel_runs_when_addressed(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("ottobot !ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
+    async def test_channel_opt_out_runs_without_name(self, reply: ReplyRecorder) -> None:
+        bot = _named_bot()
+        handled = await bot.dispatch(channel_msg("!status"), reply)
+        assert handled
+        assert reply.replies == ["ok"]
+
+    async def test_channel_without_configured_name_answers_prefix(
+        self, reply: ReplyRecorder
+    ) -> None:
+        # No name to enforce → falls back to the permissive old behavior.
+        bot = MeshBot()
+
+        @bot.command("ping")
+        async def ping(ctx: Context) -> str:
+            return "pong"
+
+        handled = await bot.dispatch(channel_msg("!ping"), reply)
+        assert handled
+        assert reply.replies == ["pong"]
+
     async def test_context_exposes_sender_and_dm_flag(
         self, bot: MeshBot, reply: ReplyRecorder
     ) -> None:

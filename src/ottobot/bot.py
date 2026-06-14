@@ -32,8 +32,18 @@ class MeshBot:
     replies). Returning None sends nothing.
     """
 
-    def __init__(self, prefix: str = "!", respond_in_channels: bool = True) -> None:
+    def __init__(
+        self,
+        prefix: str = "!",
+        name: str | None = None,
+        respond_in_channels: bool = True,
+    ) -> None:
         self.prefix = prefix
+        # The bot's own name on the mesh. In channels, commands that
+        # require addressing only run when the message leads with this
+        # name (e.g. "ottobot !ping"). When None, addressing can't be
+        # enforced, so the bot answers any prefixed channel message.
+        self.name = name
         self.respond_in_channels = respond_in_channels
         self.registry = CommandRegistry()
         self.add_command(
@@ -41,13 +51,24 @@ class MeshBot:
         )
 
     def command(
-        self, name: str, *, help: str = "", aliases: tuple[str, ...] = ()
+        self,
+        name: str,
+        *,
+        help: str = "",
+        aliases: tuple[str, ...] = (),
+        requires_address: bool = True,
     ) -> Callable[[CommandHandler], CommandHandler]:
         """Decorator that registers a command handler."""
 
         def decorator(handler: CommandHandler) -> CommandHandler:
             self.add_command(
-                Command(name=name, handler=handler, help=help, aliases=aliases)
+                Command(
+                    name=name,
+                    handler=handler,
+                    help=help,
+                    aliases=aliases,
+                    requires_address=requires_address,
+                )
             )
             return handler
 
@@ -70,17 +91,50 @@ class MeshBot:
         name, _, args = body.partition(" ")
         return name, args.strip()
 
+    def strip_address(self, text: str) -> tuple[str, bool]:
+        """Remove a leading address to the bot by name, e.g. "ottobot: !ping".
+
+        Returns (remaining text, whether the bot was addressed by name).
+        With no name configured, nothing is stripped and the bot counts as
+        not addressed. The name must stand alone — followed by whitespace,
+        ":"/"," or the end — so "ottobotanist" isn't read as "ottobot".
+        """
+        text = text.strip()
+        if not self.name:
+            return text, False
+        if text.lower().startswith(self.name.lower()):
+            rest = text[len(self.name) :]
+            if not rest or rest[0] in " :,":
+                return rest.lstrip(" :,"), True
+        return text, False
+
     async def dispatch(self, message: IncomingMessage, reply: ReplyFunc) -> bool:
         """Handle one incoming message. Returns True if a command ran."""
         if not message.is_dm and not self.respond_in_channels:
             return False
-        parsed = self.parse(message.text)
+        text, addressed = self.strip_address(message.text)
+        parsed = self.parse(text)
         if parsed is None:
             return False
         name, args = parsed
         command = self.registry.get(name)
         if command is None:
             logger.debug("ignoring unknown command %r", name)
+            return False
+        # On a shared channel, only answer when addressed by name (unless
+        # the command opts out). DMs are always addressed to the bot. If we
+        # don't know our own name, we can't enforce this, so we answer.
+        if (
+            not message.is_dm
+            and command.requires_address
+            and self.name
+            and not addressed
+        ):
+            logger.debug(
+                "ignoring channel %r: bot %r not addressed by name",
+                command.name,
+                self.name,
+            )
             return False
         ctx = Context(message=message, command_name=command.name, args=args, _reply=reply)
         try:
